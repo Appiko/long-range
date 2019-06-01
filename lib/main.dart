@@ -106,7 +106,7 @@ class _ConnectionState extends State<Connection> {
         setState(() {
           rssi = data.getInt8(0);
           crcError = data.getUint8(1) > 0 ? true : false;
-          packetCount = data.getUint16(2);
+          packetCount = data.getUint16(2, Endian.big);
         });
         print("rssi = $rssi, packetCount = $packetCount, crcError = $crcError");
       });
