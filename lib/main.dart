@@ -23,7 +23,6 @@ class MyApp extends StatelessWidget {
 class Connection extends StatefulWidget {
   const Connection({Key key, @required this.device}) : super(key: key);
   final BluetoothDevice device;
-
   @override
   _ConnectionState createState() => _ConnectionState();
 }
@@ -31,6 +30,8 @@ class Connection extends StatefulWidget {
 class _ConnectionState extends State<Connection> {
   StreamSubscription deviceConnection;
   BluetoothCharacteristic characteristic;
+  Future<bool> isConnected() async =>
+      (await widget.device.state == BluetoothDeviceState.connected);
   int packetCount = 0;
   int rssi = 0;
   bool crcError = false;
@@ -99,17 +100,24 @@ class _ConnectionState extends State<Connection> {
   }
 
   readChar(BluetoothService service) async {
-    if (widget.device != null) {
-      BluetoothCharacteristic characteristic = service.characteristics[0];
-      widget.device.readCharacteristic(characteristic).then((value) {
-        ByteData data = ByteData.view(Uint8List.fromList(value).buffer);
-        setState(() {
-          rssi = data.getInt8(0);
-          crcError = data.getUint8(1) > 0 ? true : false;
-          packetCount = data.getUint16(2, Endian.big);
+    try {
+      if (await isConnected()) {
+        BluetoothCharacteristic characteristic = service.characteristics[0];
+        widget.device.readCharacteristic(characteristic).then((value) {
+          ByteData data = ByteData.view(Uint8List.fromList(value).buffer);
+          setState(() {
+            rssi = data.getInt8(0);
+            crcError = data.getUint8(1) > 0 ? true : false;
+            packetCount = data.getUint16(2, Endian.little);
+          });
+          print(
+              "rssi = $rssi, packetCount = $packetCount, crcError = $crcError");
         });
-        print("rssi = $rssi, packetCount = $packetCount, crcError = $crcError");
-      });
+      }
+    } catch (e) {
+      print(e);
+      disconnect();
+      Navigator.pop(context);
     }
   }
 
@@ -214,9 +222,11 @@ class _ConnectionState extends State<Connection> {
     });
   }
 
-  disconnect() {
-    deviceConnection.cancel();
-    timer.cancel();
+  disconnect() async {
+    if (await isConnected()) {
+      deviceConnection.cancel();
+      timer.cancel();
+    }
   }
 
   Future<bool> _onWillPop() {
