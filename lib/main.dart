@@ -153,6 +153,7 @@ class _ConnectionState extends State<Connection> {
     var crcCount = 0;
     int startCount = packetCount;
     int endCount = packetCount;
+    int magneticCount = 0;
 
     while (count < 10) {
       await Future.delayed(Duration(seconds: 1));
@@ -160,6 +161,11 @@ class _ConnectionState extends State<Connection> {
       if (crcError) {
         crcCount++;
       }
+
+      if (magneticStatus) {
+        magneticCount++;
+      }
+
       count++;
       if (count == 10) {
         endCount = packetCount;
@@ -169,8 +175,15 @@ class _ConnectionState extends State<Connection> {
 
     Position location = await getLocation();
 
-    writeToFile(DateTime.now().millisecondsSinceEpoch, location.latitude,
-        location.longitude, avgRssi, startCount, endCount, crcCount);
+    writeToFile(
+        DateTime.now().millisecondsSinceEpoch,
+        location.latitude,
+        location.longitude,
+        avgRssi,
+        startCount,
+        endCount,
+        crcCount,
+        magneticCount);
   }
 
   Future<Position> getLocation() async {
@@ -201,23 +214,24 @@ class _ConnectionState extends State<Connection> {
       double avgRssi,
       int startCount,
       int endCount,
-      int crcCount) async {
+      int crcCount,
+      int magneticCount) async {
     final file = await _localFile;
     if (!await File(file.path).exists()) {
       file.writeAsStringSync(
-          "Time stamp,Lat,Lng,Average RSSI,Start Count,End Count,Crc error count\n",
+          "Time stamp,Lat,Lng,Average RSSI,Start Count,End Count,Crc error count,Magnetic Count\n",
           mode: FileMode.append);
     }
     file
         .writeAsString(
-            "$millisecondsSinceEpoch,$latitude,$longitude,${avgRssi.round()},$startCount,$endCount,$crcCount\n",
+            "$millisecondsSinceEpoch,$latitude,$longitude,${avgRssi.round()},$startCount,$endCount,$crcCount,$magneticCount\n",
             mode: FileMode.append)
         .then((_) {
       setState(() {
         isRecording = false;
         print("Wrote $file");
         SnackBar snackbar = SnackBar(
-          content: Text("Wrote to $file"),
+          content: Text("Recorded at $file"),
           duration: Duration(seconds: 5),
         );
 
