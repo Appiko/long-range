@@ -36,6 +36,7 @@ class _ConnectionState extends State<Connection> {
   int rssi = 0;
   bool crcError = false;
   bool connected = false;
+  bool magneticStatus = false;
   Timer timer;
 
   bool isRecording = false;
@@ -52,7 +53,9 @@ class _ConnectionState extends State<Connection> {
       child: WillPopScope(
         onWillPop: _onWillPop,
         child: Scaffold(
-            backgroundColor: crcError ? Colors.redAccent : Colors.white,
+            backgroundColor: crcError
+                ? Colors.redAccent
+                : magneticStatus ? Colors.blueAccent : Colors.white,
             appBar: AppBar(
               actions: <Widget>[
                 IconButton(
@@ -75,7 +78,7 @@ class _ConnectionState extends State<Connection> {
                 Center(
                   child: connected
                       ? Text(
-                          "RSSI = $rssi \n\nPacket count = $packetCount \n\nCRC Error? $crcError",
+                          "RSSI = $rssi \n\nPacket count = $packetCount \n\nCRC Error? $crcError \n\nMagnetic State? $magneticStatus",
                           style: display,
                         )
                       : Text("connecting to ${widget.device.name}"),
@@ -109,6 +112,7 @@ class _ConnectionState extends State<Connection> {
             rssi = data.getInt8(0);
             crcError = data.getUint8(1) > 0 ? true : false;
             packetCount = data.getUint16(2, Endian.little);
+            magneticStatus = data.getUint8(4) == 0 ? true : false;
           });
           print(
               "rssi = $rssi, packetCount = $packetCount, crcError = $crcError");
