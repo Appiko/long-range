@@ -114,8 +114,8 @@ class _ConnectionState extends State<Connection> {
             packetCount = data.getUint16(2, Endian.little);
             magneticStatus = data.getUint8(4) == 0 ? true : false;
           });
-          print(
-              "rssi = $rssi, packetCount = $packetCount, crcError = $crcError");
+          // print(
+          // "rssi = $rssi, packetCount = $packetCount, crcError = $crcError");
         });
       }
     } catch (e) {
@@ -153,23 +153,29 @@ class _ConnectionState extends State<Connection> {
     var crcCount = 0;
     int startCount = packetCount;
     int endCount = packetCount;
+    int oldCount = packetCount;
     int magneticCount = 0;
 
     while (count < 10) {
       await Future.delayed(Duration(seconds: 1));
-      avgRssi = avgRssi + rssi;
-      if (crcError) {
-        crcCount++;
+      if (oldCount != packetCount) {
+        avgRssi = avgRssi + rssi;
+        oldCount = packetCount;
+        if (crcError) {
+          crcCount++;
+        }
+
+        if (magneticStatus) {
+          magneticCount++;
+        }
       }
 
-      if (magneticStatus) {
-        magneticCount++;
-      }
-
+      print("$rssi, $packetCount, $avgRssi, ${(endCount - startCount)}");
       count++;
       if (count == 10) {
         endCount = packetCount;
-        avgRssi = avgRssi / 10;
+        avgRssi = avgRssi / (endCount - startCount);
+        print("$rssi, $packetCount, $avgRssi, ${(endCount - startCount)}");
       }
     }
 
@@ -188,7 +194,7 @@ class _ConnectionState extends State<Connection> {
 
   Future<Position> getLocation() async {
     Position position = await Geolocator()
-        .getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+        .getCurrentPosition(desiredAccuracy: LocationAccuracy.best);
     print(position.toString());
 
     return position;
