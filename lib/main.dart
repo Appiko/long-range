@@ -5,17 +5,54 @@ import 'dart:typed_data';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
+import 'package:long_range/recordings.dart';
+import 'package:long_range/recordings_service.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:share_extend/share_extend.dart';
 
-void main() => runApp(MyApp());
+void main() {
+  runApp(MultiProvider(providers: [
+    ChangeNotifierProvider.value(
+      value: RecordingsService(),
+    )
+  ], child: MyApp()));
+}
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: ThemeData(primarySwatch: Colors.indigo),
-      home: MyHomePage(title: 'Long Range'),
+        theme: ThemeData(primarySwatch: Colors.indigo), home: Homepage());
+  }
+}
+
+class Homepage extends StatefulWidget {
+  @override
+  _HomepageState createState() => _HomepageState();
+}
+
+class _HomepageState extends State<Homepage> {
+  int bottomNavIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: bottomNavIndex == 1 ? RecordingsView() : ScanPage(),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: bottomNavIndex,
+        items: [
+          BottomNavigationBarItem(
+              icon: Icon(Icons.bluetooth), title: Text("Scan")),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.bookmark), title: Text("Recordings")),
+        ],
+        onTap: (v) {
+          setState(() {
+            bottomNavIndex = v;
+          });
+        },
+      ),
     );
   }
 }
@@ -260,18 +297,18 @@ class _ConnectionState extends State<Connection> {
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
+class ScanPage extends StatefulWidget {
+  ScanPage({Key key, this.title}) : super(key: key);
 
   final String title;
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  _ScanPageState createState() => _ScanPageState();
 }
 
 FlutterBlue flutterBlue = FlutterBlue.instance;
 
-class _MyHomePageState extends State<MyHomePage> {
+class _ScanPageState extends State<ScanPage> {
   Map<DeviceIdentifier, ScanResult> devices = {};
   var config = '';
   bool isScanning = false;
@@ -313,7 +350,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        title: Text("Long Range"),
       ),
       body: Column(
         children: <Widget>[
